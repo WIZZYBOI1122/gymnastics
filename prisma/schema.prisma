@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Supabase Postgres. DATABASE_URL is the pooled connection used by the app at runtime;
+// DIRECT_URL is the direct connection used by the Prisma CLI (db push / migrate).
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// A visitor who filled in the "Book a class / Join today" form.
+model Booking {
+  id            String    @id @default(cuid())
+  name          String
+  email         String
+  phone         String
+  preferredTime String    // morning | afternoon | evening | weekend
+  goal          String    // strength | weight-loss | flexibility | general
+  intent        String    // trial | membership
+  status        String    @default("new") // new | contacted | done
+  createdAt     DateTime  @default(now())
+  payments      Payment[]
+
+  @@index([createdAt])
+  @@index([email])
+}
+
+// A bank-transfer receipt submitted for a membership plan.
+model Payment {
+  id           String    @id @default(cuid())
+  bookingId    String
+  booking      Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  plan         String    // basic | premium | elite
+  amountNaira  Int       // price snapshot at the time of payment
+  receiptFile  String    // stored file name (inside RECEIPTS_DIR)
+  receiptMime  String
+  receiptBytes Int
+  status       String    @default("pending") // pending | approved | rejected
+  note         String?
+  createdAt    DateTime  @default(now())
+  reviewedAt   DateTime?
+
+  @@index([status, createdAt])
+  @@index([bookingId])
+}
+
+// A message sent from the contact page.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String   // general-question | membership-inquiry | personal-training | feedback
+  message   String
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([handled, createdAt])
+}
